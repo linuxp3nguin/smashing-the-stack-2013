@@ -1,0 +1,83 @@
+I/O – level 1
+
+I ssh’d into the first level with the credentials by the host on the website, once connected to the level1 game server I was greeted with the following information.
+
+1
+2
+3
+Levels are in /levels
+Passes are in ~/.pass
+Readmes in /home/level1
+I opened up the readme file in the directory shown above, the file states that all programs in I/O are “SUID binaries” which run with privileges of the owner instead of the privileges of the owner. I logged in via ssh, the user account I logged in as was level1 which means I can only access files that are owned by level1 or everybody.
+
+1
+2
+level1@io:~$ ls -lh /levels
+-r-sr-x--- 1 level2  level1  7.6K Sep 22  2012 level01
+When you run the program level(number) it will ask you for a certain input and then if correct a new bash shell will be presented with the rights of the next user to allow you to access files by that user and to be able to read the pass file for the password to log into the next level.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+Description of privilege escalation by Smashthestack admins
+ 
+When you run it will ask you for a password. Which you must somehow find.
+Given the correct password it will launch a new shell with level2 rights.
+ 
+level1@io:/levels$ ./level01 [something you have to figure out goes here]
+Win.
+level1@io:/levels$ id
+uid=1001(level1) gid=1001(level1) euid=1002(level2) groups=1001(level1),1029(nosu)
+-----------------
+\_________&gt; new privileges
+ 
+as you can see, by the output of the &quot;id&quot; command you now have euid (effective user id)
+of level2. You can now read files that belong to level2. The point is to use this right
+to read the password file for the next level.
+ 
+level1@io:/levels$ cat /home/level2/.pass
+[BINGO YOU DID IT]
+After reading through the instructions and introduction, I ran the level01 program to see what was required.
+
+1
+2
+3
+level1@io:~$ /levels/level01
+You need to supply a password.
+Usage: /levels/level01 [password]
+The program expects to receive a password as well when it is executed, using the strings command I searched the binary to see if there any strings that could possibly the password that I was searching for but I was not able to find anything that looked like a password. I then opened the binary in a hexedit and was able to find the password to be “S.e.c.r.e.t.P.W”, I entered the password into the program and greeted with a “Win!”
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+level1@io:~$ hexedit /levels/level01
+level1@io:~$ /levels/level01 SecretPW
+Win!
+ 
+You will find the ssh password for level2 in /home/level2/.pass
+sh-4.2$ id
+uid=1002(level2) gid=1001(level1) groups=1002(level2),1001(level1),1029(nosu)
+sh-4.2$ cat /home/level2/.pass
+tLmf7msJTJHEpw
+Using the cat command I saw the password to ssh into level2 was “tLmf7msJTJHEpw”.
